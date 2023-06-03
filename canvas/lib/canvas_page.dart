@@ -64,16 +64,12 @@ class _CanvasPageState extends State<CanvasPage> {
     });
   }
 
-
 // Function to preload the image from the database
-Future<void> _preloadImage() async {
+  Future<void> _preloadImage() async {
     final imageUrls = await _getImageUrls();
     final currentImageUrl = imageUrls[currentImageIndex];
     _loadedImage = await loadImage(currentImageUrl);
   }
-
-
-
 
   @override
   void dispose() {
@@ -82,83 +78,80 @@ Future<void> _preloadImage() async {
     super.dispose();
   }
 
-
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    key: _scaffoldKey,
-    appBar: AppBar(
-      title: const Text("Draw Shapes"),
-      actions: [
-        Builder(
-          builder: (context) => IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.exit_to_app),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        title: const Text("Draw Shapes"),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.exit_to_app),
+            ),
           ),
-        ),
-      ],
-    ),
-    body: FutureBuilder<List<String>>(
-      future: _getImageUrls(),
-      builder: (context, snapshot) {
-        if (_loadedImage == null) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else {
-          final imageUrls = snapshot.data ?? [];
-          return Column(
-            children: [
-              Expanded(
-                flex: 7,
-                child: Container(
-                  alignment: Alignment.topCenter,
-                  child: Image.network(
-                    imageUrls[currentImageIndex],
-                    fit: BoxFit.contain,
+        ],
+      ),
+      body: FutureBuilder<List<String>>(
+        future: _getImageUrls(),
+        builder: (context, snapshot) {
+          if (_loadedImage == null) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else {
+            final imageUrls = snapshot.data ?? [];
+            return Column(
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: Container(
+                    alignment: Alignment.topCenter,
+                    child: Image.network(
+                      imageUrls[currentImageIndex],
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                flex: 8,
-                child: GestureDetector(
-                  onPanStart: (details) {
-                    setState(() {
-                      isDrawingEnabled = true;
-                      canvasPoints.add(CanvasPoint(
-                        offset: details.localPosition,
-                        tiltX: 0.0,
-                        tiltY: 0.0,
-                      ));
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    if (isDrawingEnabled) {
+                Expanded(
+                  flex: 8,
+                  child: GestureDetector(
+                    onPanStart: (details) {
                       setState(() {
-                        _lastTiltX = details.delta.dx;
-                        _lastTiltY = details.delta.dy;
+                        isDrawingEnabled = true;
                         canvasPoints.add(CanvasPoint(
                           offset: details.localPosition,
+                          tiltX: 0.0,
+                          tiltY: 0.0,
+                        ));
+                      });
+                    },
+                    onPanUpdate: (details) {
+                      if (isDrawingEnabled) {
+                        setState(() {
+                          _lastTiltX = details.delta.dx;
+                          _lastTiltY = details.delta.dy;
+                          canvasPoints.add(CanvasPoint(
+                            offset: details.localPosition,
+                            tiltX: _lastTiltX,
+                            tiltY: _lastTiltY,
+                          ));
+                        });
+                      }
+                    },
+                    onPanEnd: (_) {
+                      setState(() {
+                        isDrawingEnabled = false;
+                        canvasPoints.add(CanvasPoint(
+                          offset: null,
                           tiltX: _lastTiltX,
                           tiltY: _lastTiltY,
                         ));
                       });
-                    }
-                  },
-                  onPanEnd: (_) {
-                    setState(() {
-                      isDrawingEnabled = false;
-                      canvasPoints.add(CanvasPoint(
-                        offset: null,
-                        tiltX: _lastTiltX,
-                        tiltY: _lastTiltY,
-                      ));
-                    });
-                  },
-                  child: RepaintBoundary(
-                    key: _globalKey,
+                    },
                     child: Stack(
                       children: [
                         Align(
@@ -180,70 +173,65 @@ Widget build(BuildContext context) {
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        currentImageIndex--;
-                        if (currentImageIndex < 0) {
-                          currentImageIndex = imageUrls.length - 1;
-                        }
-                        _preloadImage(); // Preload the new image
-                        canvasPoints.clear(); // Clear the canvas points
-                      });
-                    },
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                  ),
-                  MouseRegion(
-                    onEnter: (_) {
-                      setState(() {
-                        isMouseHovering = true;
-                      });
-                    },
-                    onExit: (_) {
-                      setState(() {
-                        isMouseHovering = false;
-                      });
-                    },
-                    child: TextButton(
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    IconButton(
                       onPressed: () {
-                        if (!isDrawingEnabled) {
-                          _saveImage();
-                        }
+                        setState(() {
+                          currentImageIndex--;
+                          if (currentImageIndex < 0) {
+                            currentImageIndex = imageUrls.length - 1;
+                          }
+                          _preloadImage(); // Preload the new image
+                          canvasPoints.clear(); // Clear the canvas points
+                        });
                       },
-                      child: Text(isMouseHovering ? 'Save' : 'Click to save'),
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        currentImageIndex++;
-                        if (currentImageIndex >= imageUrls.length) {
-                          currentImageIndex = 0;
-                        }
-                        _preloadImage(); // Preload the new image
-                        canvasPoints.clear(); // Clear the canvas points
-                      });
-                    },
-                    icon: const Icon(Icons.arrow_forward_ios_rounded),
-                  ),
-                ],
-              ),
-            ],
-          );
-        }
-      },
-    ),
-  );
-}
-
-
-
-
+                    MouseRegion(
+                      onEnter: (_) {
+                        setState(() {
+                          isMouseHovering = true;
+                        });
+                      },
+                      onExit: (_) {
+                        setState(() {
+                          isMouseHovering = false;
+                        });
+                      },
+                      child: TextButton(
+                        onPressed: () {
+                          if (!isDrawingEnabled) {
+                            _saveImage();
+                          }
+                        },
+                        child: Text(isMouseHovering ? 'Save' : 'Click to save'),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          currentImageIndex++;
+                          if (currentImageIndex >= imageUrls.length) {
+                            currentImageIndex = 0;
+                          }
+                          _preloadImage(); // Preload the new image
+                          canvasPoints.clear(); // Clear the canvas points
+                        });
+                      },
+                      icon: const Icon(Icons.arrow_forward_ios_rounded),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          }
+        },
+      ),
+    );
+  }
 
   List<String> images = [];
 

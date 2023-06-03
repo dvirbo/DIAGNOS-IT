@@ -21,18 +21,34 @@ class CanvasPainter extends CustomPainter {
     // Draw the background image
     canvas.drawImageRect(
       backgroundImage,
-      Rect.fromLTRB(0, 0, backgroundImage.width.toDouble(),
-          backgroundImage.height.toDouble()),
+      Rect.fromLTRB(
+        0,
+        0,
+        backgroundImage.width.toDouble(),
+        backgroundImage.height.toDouble(),
+      ),
       Rect.fromLTRB(0, 0, size.width, size.height),
       Paint(),
     );
+
+    // Calculate the available space for drawing
+    double canvasWidth = size.width;
+    double canvasHeight = size.height - backgroundImage.height.toDouble();
+    double canvasOffsetX = (size.width - backgroundImage.width.toDouble()) / 2;
+    double canvasOffsetY = backgroundImage.height.toDouble();
 
     // Draw the canvas points
     for (int i = 0; i < points.length - 1; i++) {
       if (points[i].offset != null && points[i + 1].offset != null) {
         canvas.drawLine(
-          points[i].offset!,
-          points[i + 1].offset!,
+          Offset(
+            points[i].offset!.dx + canvasOffsetX,
+            points[i].offset!.dy + canvasOffsetY,
+          ),
+          Offset(
+            points[i + 1].offset!.dx + canvasOffsetX,
+            points[i + 1].offset!.dy + canvasOffsetY,
+          ),
           _paintDetails,
         );
       }
