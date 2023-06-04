@@ -5,12 +5,12 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:canvas/models/CanvasPoint.dart';
 import 'package:canvas/view/CanvasPainter.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:collection'; // For SplayTreeMap
 
 // Arguments class for passing data to the CanvasPage
 class CanvasPageArguments {
@@ -64,11 +64,47 @@ class _CanvasPageState extends State<CanvasPage> {
     });
   }
 
+Offset getCanvasOffset(Offset offset, Size size) {
+    // Calculate the canvas offset based on the image size and canvas size
+    double canvasWidth = _loadedImage!.width.toDouble();
+    double canvasHeight = _loadedImage!.height.toDouble();
+    double scaleFactor = size.width / canvasWidth;
+    double canvasOffsetX = (size.width - canvasWidth * scaleFactor) / 2;
+    double canvasOffsetY = (size.height - canvasHeight * scaleFactor) / 2;
+
+    // Adjust the offset based on the canvas offset
+    return Offset(
+      (offset.dx - canvasOffsetX) / scaleFactor,
+      (offset.dy - canvasOffsetY) / scaleFactor,
+    );
+  }
+
 // Function to preload the image from the database
+  final _imageCache = SplayTreeMap<int, ui.Image>();
+
   Future<void> _preloadImage() async {
     final imageUrls = await _getImageUrls();
     final currentImageUrl = imageUrls[currentImageIndex];
+
+    // Check the cache for the requested image
+    if (_imageCache.containsKey(currentImageUrl.hashCode)) {
+      _loadedImage = _imageCache[currentImageUrl.hashCode];
+      return;
+    }
+
     _loadedImage = await loadImage(currentImageUrl);
+
+    // Add the downloaded image to the cache and ensure the cache size is capped at 10
+    _imageCache[currentImageUrl.hashCode] = _loadedImage!;
+    if (_imageCache.length > 10) {
+      _imageCache.remove(_imageCache.firstKey());
+    }
+  }
+
+  void _clearCanvas() {
+    setState(() {
+      canvasPoints.clear();
+    });
   }
 
   @override
@@ -78,6 +114,9 @@ class _CanvasPageState extends State<CanvasPage> {
     super.dispose();
   }
 
+  double canvasOffsetX = 0.0;
+  double canvasOffsetY = 0.0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,6 +124,11 @@ class _CanvasPageState extends State<CanvasPage> {
       appBar: AppBar(
         title: const Text("Draw Shapes"),
         actions: [
+          IconButton(
+            onPressed: _clearCanvas,
+            icon: const Icon(Icons.delete_sweep),
+            tooltip: 'Clear Canvas',
+          ),
           Builder(
             builder: (context) => IconButton(
               onPressed: () {
@@ -110,9 +154,12 @@ class _CanvasPageState extends State<CanvasPage> {
                   flex: 7,
                   child: Container(
                     alignment: Alignment.topCenter,
-                    child: Image.network(
-                      imageUrls[currentImageIndex],
-                      fit: BoxFit.contain,
+                    child: Center(
+                      child: Image.network(
+                        imageUrls[currentImageIndex],
+                        fit: BoxFit
+                            .contain, 
+                      ),
                     ),
                   ),
                 ),
@@ -123,7 +170,8 @@ class _CanvasPageState extends State<CanvasPage> {
                       setState(() {
                         isDrawingEnabled = true;
                         canvasPoints.add(CanvasPoint(
-                          offset: details.localPosition,
+                          offset: getCanvasOffset(details.localPosition,
+                              MediaQuery.of(context).size),
                           tiltX: 0.0,
                           tiltY: 0.0,
                         ));
@@ -135,7 +183,8 @@ class _CanvasPageState extends State<CanvasPage> {
                           _lastTiltX = details.delta.dx;
                           _lastTiltY = details.delta.dy;
                           canvasPoints.add(CanvasPoint(
-                            offset: details.localPosition,
+                            offset: getCanvasOffset(details.localPosition,
+                                MediaQuery.of(context).size),
                             tiltX: _lastTiltX,
                             tiltY: _lastTiltY,
                           ));

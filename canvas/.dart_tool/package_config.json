@@ -45,7 +45,7 @@
     },
     {
       "name": "cupertino_icons",
-      "rootUri": "file:///C:/src/flutter/.pub-cache/hosted/pub.dartlang.org/cupertino_icons-1.0.4",
+      "rootUri": "file:///C:/src/flutter/.pub-cache/hosted/pub.dartlang.org/cupertino_icons-1.0.5",
       "packageUri": "lib/",
       "languageVersion": "2.12"
     },
@@ -344,7 +344,7 @@
       "languageVersion": "2.16"
     }
   ],
-  "generated": "2023-06-03T14:44:52.186357Z",
+  "generated": "2023-06-04T16:31:44.353043Z",
   "generator": "pub",
   "generatorVersion": "2.17.0"
 }

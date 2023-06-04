@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<site-list version="91">
+<site-list version="11">
  <site url="0rga.org">
   <open-in allow-redirect="true">MSEdge</open-in>
  </site>
@@ -9093,6 +9093,14 @@
  <site url="ibinder.com">
   <open-in allow-redirect="true">MSEdge</open-in>
  </site>
+ <site url="ibrowse.calanit.com">
+  <compat-mode>IE8Enterprise</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="ibrowse.calanit.com/synerionweb">
+  <compat-mode>IE8Enterprise</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
  <site url="ibuypower.com">
   <open-in allow-redirect="true">MSEdge</open-in>
  </site>
@@ -14537,6 +14545,26 @@
  </site>
  <site url="pepeland.net">
   <open-in allow-redirect="true">MSEdge</open-in>
+ </site>
+ <site url="percite.co.il">
+  <compat-mode>IE8Enterprise</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="percite.co.il/sldg/entryscreen.jsp">
+  <compat-mode>IE8Enterprise</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="percite.co.il/sldg/scmlogin.jsp">
+  <compat-mode>IE8Enterprise</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="percite.co.il/sldg/usermainframe.jsp">
+  <compat-mode>IE8Enterprise</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="percite.co.il/tstsldg">
+  <compat-mode>IE8Enterprise</compat-mode>
+  <open-in>IE11</open-in>
  </site>
  <site url="peregianspringsss.eq.edu.au">
   <open-in allow-redirect="true">MSEdge</open-in>
