@@ -64,7 +64,7 @@ class _CanvasPageState extends State<CanvasPage> {
     });
   }
 
-Offset getCanvasOffset(Offset offset, Size size) {
+  Offset getCanvasOffset(Offset offset, Size size) {
     // Calculate the canvas offset based on the image size and canvas size
     double canvasWidth = _loadedImage!.width.toDouble();
     double canvasHeight = _loadedImage!.height.toDouble();
@@ -157,8 +157,7 @@ Offset getCanvasOffset(Offset offset, Size size) {
                     child: Center(
                       child: Image.network(
                         imageUrls[currentImageIndex],
-                        fit: BoxFit
-                            .contain, 
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
@@ -301,76 +300,40 @@ Offset getCanvasOffset(Offset offset, Size size) {
   }
 
   Future<void> _saveImage() async {
+    // First, get the screenshot of the drawing and existing image
     RenderRepaintBoundary boundary =
         _globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-    ui.Image image = await boundary.toImage();
+    ui.Image screenshot = await boundary.toImage();
 
-    ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    // Save the screenshot to Firebase Storage under the user's name folder
+    ByteData? byteData =
+        await screenshot.toByteData(format: ui.ImageByteFormat.png);
     Uint8List pngBytes = byteData!.buffer.asUint8List();
-    Size imageSize = Size(image.width.toDouble(), image.height.toDouble());
-
-    final recorder = ui.PictureRecorder();
-    final shape = await loadImage(images[currentImageIndex]);
-    final double imageScale = imageSize.width / shape.width.toDouble();
-    final double adjustedImageHeight = shape.height.toDouble() * imageScale;
-    final canvas = Canvas(
-      recorder,
-      Rect.fromLTWH(
-        0,
-        0,
-        imageSize.width,
-        imageSize.height + adjustedImageHeight,
-      ),
-    );
-
-    canvas.drawImageRect(
-      shape,
-      Rect.fromLTWH(0, 0, shape.width.toDouble(), shape.height.toDouble()),
-      Rect.fromLTWH(0, 0, imageSize.width, adjustedImageHeight),
-      Paint()..isAntiAlias = true,
-    );
-
-    canvas.drawImage(
-      image,
-      Offset(0, adjustedImageHeight),
-      Paint(),
-    );
-
-    final picture = recorder.endRecording();
-    image = await picture.toImage(
-      imageSize.width.toInt(),
-      (imageSize.height + adjustedImageHeight).toInt(),
-    );
-
-    byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    pngBytes = byteData!.buffer.asUint8List();
 
     final storage = FirebaseStorage.instance;
-    final storageRef = storage
-        .ref()
-        .child('images/$sessionId/${images[currentImageIndex]}.png');
-    await storageRef.putData(pngBytes);
+    final screenshotStorageRef = storage.ref().child(
+        'users/$name/screenshots/$sessionId/${images[currentImageIndex]}.png');
+    await screenshotStorageRef.putData(pngBytes);
 
-    // Get the download URL of the uploaded image
-    final imageUrl = await storageRef.getDownloadURL();
-    print("Image URL: $imageUrl");
+    // Get the download URL of the uploaded screenshot
+    final screenshotUrl = await screenshotStorageRef.getDownloadURL();
+    print("Screenshot URL: $screenshotUrl");
+
+    // Save the CSV Data to Firebase Storage under the user's name folder
+    await _saveCsvData(context);
   }
 
-  Future<ui.Image> loadImage(String imagePath) async {
-    final completer = Completer<ui.Image>();
-    final networkImage = NetworkImage(imagePath);
+/*
+The _saveCsvData() method is responsible for saving the drawing data in CSV format to Firebase storage.
+Its primary function is to:
+Prepare a CSV formatted string containing the drawing data. 
+This includes the participant's name, age, X and Y coordinates of every drawn point, TiltX and TiltY (the delta values in both directions), and the time.
+Define the CSV file's path in Firebase Storage using the session ID, user name, and image name.
+Upload the CSV file to Firebase Storage under the defined path.
+This method is called within the _saveImage() method to upload the CSV file to Firebase Storage when a user saves their drawing.
+*/
 
-    final configuration = createLocalImageConfiguration(context);
-    networkImage
-        .resolve(configuration)
-        .addListener(ImageStreamListener((ImageInfo info, bool _) {
-      completer.complete(info.image);
-    }));
-
-    return await completer.future;
-  }
-
-  Future<void> _saveCsvData(BuildContext context) async {
+    Future<void> _saveCsvData(BuildContext context) async {
     if (canvasPoints.isNotEmpty) {
       try {
         String csvData =
@@ -383,9 +346,10 @@ Offset getCanvasOffset(Offset offset, Size size) {
           }
         }
 
-        final sessionDirectory = 'sessions/$sessionId';
+        // Update the storage path to include the user's name folder
+        final sessionDirectory = 'users/$name/sessions/$sessionId';
         final imageName =
-            images[currentImageIndex].split('/').last.split('.').first;
+            images[currentImageIndex].split('/')[4].split('.').first;
         final csvPath =
             '$sessionDirectory/${name}_${imageName}_drawing_data.csv';
 
@@ -403,5 +367,19 @@ Offset getCanvasOffset(Offset offset, Size size) {
         print("Error: $e");
       }
     }
+  }
+
+  Future<ui.Image> loadImage(String imagePath) async {
+    final completer = Completer<ui.Image>();
+    final networkImage = NetworkImage(imagePath);
+
+    final configuration = createLocalImageConfiguration(context);
+    networkImage
+        .resolve(configuration)
+        .addListener(ImageStreamListener((ImageInfo info, bool _) {
+      completer.complete(info.image);
+    }));
+
+    return await completer.future;
   }
 }
