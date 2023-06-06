@@ -11,6 +11,8 @@ import 'package:canvas/models/CanvasPoint.dart';
 import 'package:canvas/view/CanvasPainter.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:collection'; // For SplayTreeMap
+import 'package:flutter/cupertino.dart';
+
 
 // Arguments class for passing data to the CanvasPage
 class CanvasPageArguments {
@@ -299,6 +301,16 @@ class _CanvasPageState extends State<CanvasPage> {
     return imageUrls;
   }
 
+/*
+The _saveCsvData() method is responsible for saving the drawing data in CSV format to Firebase storage.
+Its primary function is to:
+Prepare a CSV formatted string containing the drawing data. 
+This includes the participant's name, age, X and Y coordinates of every drawn point, TiltX and TiltY (the delta values in both directions), and the time.
+Define the CSV file's path in Firebase Storage using the session ID, user name, and image name.
+Upload the CSV file to Firebase Storage under the defined path.
+This method is called within the _saveImage() method to upload the CSV file to Firebase Storage when a user saves their drawing.
+*/
+
   Future<void> _saveImage() async {
     // First, get the screenshot of the drawing and existing image
     RenderRepaintBoundary boundary =
@@ -311,8 +323,15 @@ class _CanvasPageState extends State<CanvasPage> {
     Uint8List pngBytes = byteData!.buffer.asUint8List();
 
     final storage = FirebaseStorage.instance;
-    final screenshotStorageRef = storage.ref().child(
-        'users/$name/screenshots/$sessionId/${images[currentImageIndex]}.png');
+    final userFolderRef = storage
+        .ref()
+        .child('users_data/$name'); // Create a reference to the user's folder
+    final sessionId = DateTime.now()
+        .millisecondsSinceEpoch
+        .toString(); // Generate a unique session ID
+    final screenshotStorageRef = userFolderRef
+        .child('$sessionId/screenshot.png'); // Define the screenshot path
+
     await screenshotStorageRef.putData(pngBytes);
 
     // Get the download URL of the uploaded screenshot
@@ -320,20 +339,11 @@ class _CanvasPageState extends State<CanvasPage> {
     print("Screenshot URL: $screenshotUrl");
 
     // Save the CSV Data to Firebase Storage under the user's name folder
-    await _saveCsvData(context);
+    await _saveCsvData(userFolderRef
+        .child('$sessionId/drawing_data.csv')); // Pass the CSV file path
   }
 
-/*
-The _saveCsvData() method is responsible for saving the drawing data in CSV format to Firebase storage.
-Its primary function is to:
-Prepare a CSV formatted string containing the drawing data. 
-This includes the participant's name, age, X and Y coordinates of every drawn point, TiltX and TiltY (the delta values in both directions), and the time.
-Define the CSV file's path in Firebase Storage using the session ID, user name, and image name.
-Upload the CSV file to Firebase Storage under the defined path.
-This method is called within the _saveImage() method to upload the CSV file to Firebase Storage when a user saves their drawing.
-*/
-
-    Future<void> _saveCsvData(BuildContext context) async {
+  Future<void> _saveCsvData(Reference csvStorageRef) async {
     if (canvasPoints.isNotEmpty) {
       try {
         String csvData =
@@ -346,17 +356,8 @@ This method is called within the _saveImage() method to upload the CSV file to F
           }
         }
 
-        // Update the storage path to include the user's name folder
-        final sessionDirectory = 'users/$name/sessions/$sessionId';
-        final imageName =
-            images[currentImageIndex].split('/')[4].split('.').first;
-        final csvPath =
-            '$sessionDirectory/${name}_${imageName}_drawing_data.csv';
-
-        final storage = FirebaseStorage.instance;
-        final storageRef = storage.ref().child(csvPath);
         final uploadTask =
-            storageRef.putData(Uint8List.fromList(utf8.encode(csvData)));
+            csvStorageRef.putData(Uint8List.fromList(utf8.encode(csvData)));
 
         await uploadTask.whenComplete(() {
           const snackBar =
@@ -369,17 +370,19 @@ This method is called within the _saveImage() method to upload the CSV file to F
     }
   }
 
-  Future<ui.Image> loadImage(String imagePath) async {
+Future<ui.Image> loadImage(String imagePath) async {
     final completer = Completer<ui.Image>();
     final networkImage = NetworkImage(imagePath);
 
     final configuration = createLocalImageConfiguration(context);
-    networkImage
-        .resolve(configuration)
-        .addListener(ImageStreamListener((ImageInfo info, bool _) {
+    final resolvedStream = networkImage.resolve(configuration);
+
+    resolvedStream.addListener(ImageStreamListener((ImageInfo info, bool _) {
       completer.complete(info.image);
     }));
 
     return await completer.future;
   }
+
+
 }

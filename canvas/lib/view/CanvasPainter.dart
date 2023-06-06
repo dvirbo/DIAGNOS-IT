@@ -16,65 +16,34 @@ class CanvasPainter extends CustomPainter {
           ..strokeWidth = 6.0
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round;
+
   @override
   void paint(Canvas canvas, Size size) {
-// Draw the background image
-    Size targetSize = Size(
-        size.width,
-        size.width *
-            backgroundImage.height.toDouble() /
-            backgroundImage.width.toDouble());
-    canvas.drawImageRect(
-      backgroundImage,
-      Rect.fromLTRB(
-        0,
-        0,
-        backgroundImage.width.toDouble(),
-        backgroundImage.height.toDouble(),
-      ),
-      Rect.fromLTWH(
-          0, 0, targetSize.width, targetSize.height), // Updated this line
-      Paint(),
-    );
+    if (backgroundImage != null) {
+      canvas.drawImageRect(
+        backgroundImage,
+        Offset.zero &
+            Size(backgroundImage.width.toDouble(),
+                backgroundImage.height.toDouble()),
+        Offset.zero & size,
+        _paintDetails,
+      );
+    }
 
-    // Calculate the available space for drawing
-    double canvasWidth = size.width;
-    double canvasHeight = size.height - backgroundImage.height.toDouble();
-    double canvasOffsetX = (size.width - backgroundImage.width.toDouble()) / 2;
-    double canvasOffsetY = backgroundImage.height.toDouble();
-
-    // Draw the canvas points
     for (int i = 0; i < points.length - 1; i++) {
       if (points[i].offset != null && points[i + 1].offset != null) {
-        // Calculate the distance between the two points
-        double distance = (points[i].offset! - points[i + 1].offset!).distance;
-
-        // Calculate the number of line segments needed
-        int numSegments = (distance / lineSegmentSize).ceil();
-
-        // Calculate the increments for x and y directions
-        double dxIncrement =
-            (points[i + 1].offset!.dx - points[i].offset!.dx) / numSegments;
-        double dyIncrement =
-            (points[i + 1].offset!.dy - points[i].offset!.dy) / numSegments;
-
-        // Draw multiple smaller line segments to create a smoother line
-        for (int j = 0; j < numSegments; j++) {
-          Offset startPoint = Offset(
-            points[i].offset!.dx + dxIncrement * j + canvasOffsetX,
-            points[i].offset!.dy + dyIncrement * j + canvasOffsetY,
-          );
-          Offset endPoint = Offset(
-            points[i].offset!.dx + dxIncrement * (j + 1) + canvasOffsetX,
-            points[i].offset!.dy + dyIncrement * (j + 1) + canvasOffsetY,
-          );
-
-          canvas.drawLine(startPoint, endPoint, _paintDetails);
-        }
+        canvas.drawLine(
+          points[i].offset!,
+          points[i + 1].offset!,
+          _paintDetails,
+        );
       }
     }
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => true;
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return true;
+  }
 }
+
